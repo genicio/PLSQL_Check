@@ -1,0 +1,13 @@
+select a.DT_FIM_PROC_CG FIM, 
+       o.CD_OBJ, 
+       o.NM_OBJ, 
+       a.CD_TIPO_ER_CG TP_ERR, 
+       ROUND((a.DT_FIM_PROC_CG-a.DT_INI_PROC_CG)*24*60*60) DUR, 
+       a.DS_MSG, 
+       a.DT_INI_PROC_CG INICIO, 
+       a.DT_FIM_PROC_CG FIM, 
+       a.*
+from CT_REJEICAO_AVISO A, CT_OBJETO O
+where DT_REJEIT_AVIS >= to_date('20180904 150000','YYYYMMDD HH24MISS')
+and a.CD_OBJ = o.CD_OBJ
+order by NO_SEQ, a.DT_INI_PROC_CG, a.DT_FIM_PROC_CG
