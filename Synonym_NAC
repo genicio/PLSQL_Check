@@ -54,7 +54,7 @@ CREATE OR REPLACE PROCEDURE "DW"."BI_CONFERE_SYNONYMS_NAC" (PAR_CD_TIPO_CG  CHAR
   WRK_CH_15             VARCHAR2(50) := NULL;   -- CAMPO DA CHAVE DO REGISTRO QUE OCASIONOU ERRO NO PROCESSAMENTO
   WRK_CH_16             VARCHAR2(50) := NULL;   -- CAMPO DA CHAVE DO REGISTRO QUE OCASIONOU ERRO NO PROCESSAMENTO
   
-  WRK_DEBUG             VARCHAR2(5);
+  WRK_DEBUG             VARCHAR2(5)  := 'GZ';
   WRK_COUNT_SYNONYM     NUMBER;
   WRK_SYNONYM           VARCHAR2(300);
   WRK_INSTANCIA         VARCHAR2(20) := 'DESMST';
@@ -63,6 +63,15 @@ CREATE OR REPLACE PROCEDURE "DW"."BI_CONFERE_SYNONYMS_NAC" (PAR_CD_TIPO_CG  CHAR
   
 
 BEGIN
+  BEGIN
+  WRK_COUNT_SYNONYM := 0;
+  WRK_SYNONYM := '';
+  WRK_CD_OBJ := 1266;
+  WRK_DT_INI_PROC_CG := SYSDATE;
+  WRK_CD_ASSUN_PROC := 64;
+  WRK_CD_PROC_CG := 274;
+  WRK_DS_MSG         := 'ETL CONTROLE SINONIMO PROCESSADO COM SUCESSO';
+  WRK_CD_USUARIO     := 'Projeto BI';
 
   SELECT
     TO_NUMBER(COUNT(*))
@@ -76,6 +85,7 @@ BEGIN
             SYNONYM_NAME NM_SYNONYM
         FROM ALL_SYNONYMS
         WHERE   TABLE_OWNER IN  ('NAC', 'STAGE_BI_PROT'));
+
 
   SELECT
     TO_CHAR(LISTAGG(NM_SYNONYM,', ') WITHIN GROUP (ORDER BY NM_SYNONYM))
@@ -92,6 +102,8 @@ BEGIN
 
   -- VARIAVEIS COMUNS AOS FATOS
   /*---------------DESENV------------------------*/
+    /* -- comentado por Gz em 2018.09.05
+
   WRK_CD_OBJ         := 1266;
   WRK_CD_ASSUN_PROC  := 64;
   WRK_CD_PROC_CG     := 274;
@@ -99,6 +111,7 @@ BEGIN
   WRK_DT_INI_PROC_CG := SYSDATE;
   WRK_COMMIT         := 1000;
   WRK_DS_MSG         := 'ETL FATO AG_SUPR_GASTO_CATEGORIA PROCESSADO COM SUCESSO';
+*/
   /*---------------HOMOLOG------------------------*/
   /*WRK_CD_OBJ         := 944;
   WRK_CD_ASSUN_PROC  := 46;
@@ -115,6 +128,7 @@ BEGIN
   WRK_DT_INI_PROC_CG := SYSDATE;
   WRK_COMMIT         := 1000;
   WRK_DS_MSG         := 'ETL FATO AVANCOS FISICOS PROCESSADO COM SUCESSO';*/
+
   BEGIN
   
       -- FUNÇÃO DE ENVIO DE EMAIL COM SINONIMOS A SEREM CRIADOS 
@@ -122,5 +136,84 @@ BEGIN
       END IF;
   
   END;
+  
+  
+          EXCEPTION
+            WHEN OTHERS THEN
 
+                WRK_REG_ERROS := WRK_REG_ERROS + 1;
+
+                -- LOG DE ERRO
+                BI_LOG_PROCESSAMENTO_ERRO   (WRK_CD_OBJ, --CD_OBJ NUMBER
+                                            SYSDATE, --DT_REJEIT_AVIS DATE
+                                            WRK_DT_INI_PROC_CG, --DT_INI_PROC_CG DATE
+                                            WRK_CD_ASSUN_PROC, --CD_ASSUN_PROC NUMBER
+                                            NULL, --ID_EMPR_CG NUMBER
+                                            WRK_CD_PROC_CG, --CD_PROC_CG NUMBER,
+                                            'EO', --CD_TIPO_ER_CG VARCHAR2,
+                                            PAR_CD_TIPO_CG, --CD_TIPO_CG VARCHAR2,
+                                            WRK_CH_01, --VR_CH_01
+                                            WRK_CH_02, --VR_CH_02
+                                            WRK_CH_03, --VR_CH_03
+                                            WRK_CH_04, --VR_CH_04
+                                            WRK_CH_05, --VR_CH_05
+                                            WRK_CH_06, --VR_CH_06
+                                            WRK_CH_07, --VR_CH_07
+                                            WRK_CH_08, --VR_CH_08
+                                            WRK_CH_09, --VR_CH_09
+                                            WRK_CH_10, --VR_CH_10
+                                            WRK_CH_11, --VR_CH_11
+                                            WRK_CH_12, --VR_CH_12
+                                            WRK_CH_13, --VR_CH_13
+                                            WRK_CH_14, --VR_CH_14
+                                            WRK_CH_15, --VR_CH_15
+                                            WRK_CH_16, --VR_CH_16                                  
+                                            WRK_REG_ERROS, --ID_REJEIT NUMBER
+                                            'ERRO:' || SQLERRM || ' DEBUG = ' || WRK_DEBUG, --DS_MSG VARCHAR2
+                                            WRK_CD_USUARIO, --CD_USUARIO VARCHAR2
+                                            'S', --IN_REJEIT VARCHAR2
+                                            WRK_DT_FIM_PROC_CG); --DT_FIM_PROC_CG DATE
+                COMMIT;
+        END;
+
+  WRK_DT_FIM_PROC_CG := SYSDATE;
+  
+  IF WRK_REG_ERROS = 0 THEN
+    -- LOG DE PROCESSAMENTO
+    BI_LOG_PROCESSAMENTO_ERRO(WRK_CD_OBJ, --CD_OBJ NUMBER
+                              SYSDATE, --DT_REJEIT_AVIS DATE
+                              WRK_DT_INI_PROC_CG, --DT_INI_PROC_CG DATE
+                              WRK_CD_ASSUN_PROC, --CD_ASSUN_PROC NUMBER
+                              NULL, --ID_EMPR_CG NUMBER
+                              WRK_CD_PROC_CG, --CD_PROC_CG NUMBER,
+                              'NA', --CD_TIPO_ER_CG VARCHAR2,
+                              PAR_CD_TIPO_CG, --CD_TIPO_CG VARCHAR2,
+                              WRK_REG_ERROS, --NULL, --VR_CH_01 PAR_CD_TIPO_CG,
+                              NULL, --VR_CH_02 PAR_CD_EMPR,
+                              NULL, --VR_CH_03 PAR_DT_INI,
+                              NULL, --VR_CH_04 PAR_DT_FIM,
+                              NULL, --VR_CH_05
+                              NULL, --VR_CH_06
+                              NULL, --VR_CH_07
+                              NULL, --VR_CH_08
+                              NULL, --VR_CH_09
+                              NULL, --VR_CH_10
+                              NULL, --VR_CH_11
+                              NULL, --VR_CH_12
+                              NULL, --VR_CH_13
+                              NULL, --VR_CH_14
+                              NULL, --VR_CH_15
+                              NULL, --VR_CH_16
+                              NULL, --ID_REJEIT NUMBER
+                              WRK_DS_MSG, --DS_MSG VARCHAR2
+                              WRK_CD_USUARIO, --CD_USUARIO VARCHAR2
+                              'N', --IN_REJEIT VARCHAR2
+                              WRK_DT_FIM_PROC_CG); --DT_FIM_PROC_CG DATE
+    COMMIT;
+  END IF;
+
+  -- ATUALIZA O OBJETO
+  BI_LOG_OBJETO(WRK_CD_OBJ, WRK_DT_INI_PROC_CG, WRK_REG_ERROS);
+  COMMIT;
+    
 END BI_CONFERE_SYNONYMS_NAC;
